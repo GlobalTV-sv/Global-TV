@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GlobalTV IP - Plataforma de Cable Digital</title>
+    <!-- Video.js CSS para reproducción HLS/m3u8 -->
+    <link href="https://vjs.zencdn.net/7.20.3/video-js.css" rel="stylesheet" />
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #0f172a;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* Encabezado y Navegación */
+        header {
+            background-color: #1e293b;
+            padding: 12px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #3b82f6;
+        }
+
+        .logo {
+            font-size: 22px;
+            font-weight: bold;
+            color: #60a5fa;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .btn-nav {
+            background-color: #334155;
+            color: white;
+            border: 1px solid #475569;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-nav:hover {
+            background-color: #2563eb;
+            border-color: #2563eb;
+        }
+
+        .badge-live {
+            background-color: #ef4444;
+            color: white;
+            padding: 4px 10px;
+            font-size: 12px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        /* Vistas (Player vs Admin) */
+        .view-section {
+            display: none;
+            flex: 1;
+        }
+
+        .view-section.active {
+            display: flex;
+        }
+
+        /* ----- VISTA TV (JUGADOR Y LISTA) ----- */
+        .container-tv {
+            width: 100%;
+            flex-wrap: wrap;
+        }
+
+        .player-section {
+            flex: 3;
+            min-width: 60%;
+            background-color: #000;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .video-wrapper {
+            width: 100%;
+            position: relative;
+            padding-top: 56.25%; /* Relación 16:9 */
+        }
+
+        .video-js {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .channel-info {
+            padding: 20px;
+            background-color: #1e293b;
+        }
+
+        .channel-info h2 {
+            color: #f8fafc;
+            margin-bottom: 5px;
+        }
+
+        .channel-info p {
+            color: #94a3b8;
+            font-size: 14px;
+        }
+
+        /* Sidebar de Canales */
+        .sidebar {
+            flex: 1;
+            min-width: 320px;
+            background-color: #0f172a;
+            border-left: 1px solid #334155;
+            display: flex;
+            flex-direction: column;
+            max-height: calc(100vh - 65px);
+            overflow-y: auto;
+        }
+
+        .category-filter {
+            padding: 12px;
+            background-color: #1e293b;
+            border-bottom: 1px solid #334155;
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+        }
+
+        .cat-btn {
+            background: #334155;
+            color: #fff;
+            border: none;
+            padding: 6px 14px;
+            font-size: 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .cat-btn.active {
+            background: #2563eb;
+        }
+
+        .channel-list {
+            list-style: none;
+        }
+
+        .channel-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            border-bottom: 1px solid #1e293b;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .channel-item:hover {
+            background-color: #1e293b;
+        }
+
+        .channel-item.active {
+            background-color: #2563eb;
+        }
+
+        .channel-item img {
+            width: 42px;
+            height: 42px;
+            border-radius: 6px;
+            margin-right: 15px;
+            object-fit: cover;
+            background: #334155;
+        }
+
+        .channel-details h4 {
+            font-size: 15px;
+            margin-bottom: 3px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .channel-details span {
+            font-size: 12px;
+            color: #94a3b8;
+        }
+
+        .channel-item.active .channel-details span {
+            color: #e2e8f0;
+        }
+
+        .badge-tag {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .badge-hd { background: #3b82f6; color: #fff; }
+        .badge-4k { background: #f59e0b; color: #000; }
+        .badge-own { background: #8b5cf6; color: #fff; }
+
+        /* ----- VISTA ADMINISTRADOR ----- */
+        .container-admin {
+            padding: 30px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .admin-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+
+        @media (max-width: 900px) {
+            .admin-grid { grid-template-columns: 1fr; }
+            .container-tv { flex-direction: column; }
+            .sidebar { max-height: none; }
+        }
+
+        .card {
+            background-color: #1e293b;
+            border-radius: 10px;
+            padding: 25px;
+            border: 1px solid #334155;
+        }
+
+        .card h3 {
+            margin-bottom: 20px;
+            color: #60a5fa;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 13px;
+            color: #cbd5e1;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 6px;
+            border: 1px solid #334155;
+            background: #0f172a;
+            color: #fff;
+            font-size: 14px;
+        }
+
+        .btn {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+
+        .btn:hover { background-color: #1d4ed8; }
+        .btn-danger { background-color: #ef4444; }
+        .btn-danger:hover { background-color: #dc2626; }
+        .btn-preview { background-color: #10b981; }
+        .btn-preview:hover { background-color: #059669; }
+
+        .preview-container {
+            position: relative;
+            padding-top: 56.25%;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .preview-container video {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #334155;
+            font-size: 14px;
+        }
+
+        th { background-color: #0f172a; color: #60a5fa; }
+    </style>
+</head>
+<body>
+
+    <!-- Encabezado de la Plataforma -->
+    <header>
+        <div class="logo">
+            🌐 GLOBAL TV IP
+        </div>
+        <div class="nav-controls">
+            <span class="badge-live">EN VIVO</span>
+            <button class="btn-nav" id="btn-view-tv" onclick="switchView('tv')" style="display:none;">📺 Ver TV</button>
+            <button class="btn-nav" id="btn-view-admin" onclick="openAdmin()">⚙️ Administrador</button>
+        </div>
+    </header>
+
+    <!-- 1. VISTA REPRODUCTOR TV (PÚBLICA) -->
+    <div id="view-tv" class="view-section active container-tv">
+        <div class="player-section">
+            <div class="video-wrapper">
+                <video id="main-player" class="video-js vjs-default-skin vjs-big-play-centered" controls autoplay preload="auto">
+                    <source src="" type="application/x-mpegURL">
+                </video>
+            </div>
+            <div class="channel-info">
+                <h2 id="current-channel-title">Cargando canales...</h2>
+                <p id="current-channel-desc">Selecciona un canal de la guía para iniciar la reproducción.</p>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <!-- Filtro por Categorías -->
+            <div class="category-filter" id="category-filter">
+                <button class="cat-btn active" onclick="filterCategory('Todas')">Todas</button>
+                <button class="cat-btn" onclick="filterCategory('Canal Propio')">Canal Propio</button>
+                <button class="cat-btn" onclick="filterCategory('Noticias')">Noticias</button>
+                <button class="cat-btn" onclick="filterCategory('Deportes')">Deportes</button>
+                <button class="cat-btn" onclick="filterCategory('Entretenimiento')">Entretenimiento</button>
+                <button class="cat-btn" onclick="filterCategory('Cultura')">Cultura</button>
+            </div>
+
+            <!-- Lista Dinámica de Canales -->
+            <ul class="channel-list" id="channel-list">
+                <!-- Se genera con JavaScript -->
+            </ul>
+        </div>
+    </div>
+
+    <!-- 2. VISTA PANEL ADMINISTRADOR (PROTEGIDA POR CLAVE) -->
+    <div id="view-admin" class="view-section container-admin">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h2>🛠️ Sistema de Ingreso de Canales IPTV</h2>
+            <button class="btn btn-danger" onclick="switchView('tv')">Salir del Panel</button>
+        </div>
+
+        <div class="admin-grid">
+            <!-- Formulario para Agregar Canales -->
+            <div class="card">
+                <h3>Ingresar Nueva Señal</h3>
+                
+                <div class="form-group">
+                    <label>Nombre del Canal</label>
+                    <input type="text" id="chan-name" placeholder="Ej: Canal 10 HD, ESPN, Mi TV">
+                </div>
+
+                <div class="form-group">
+                    <label>Categoría</label>
+                    <select id="chan-cat">
+                        <option value="Canal Propio">Canal Propio</option>
+                        <option value="Noticias">Noticias</option>
+                        <option value="Deportes">Deportes</option>
+                        <option value="Entretenimiento">Entretenimiento</option>
+                        <option value="Cultura">Cultura / Documentales</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Calidad de Imagen</label>
+                    <select id="chan-quality">
+                        <option value="HD">HD (Alta Definición)</option>
+                        <option value="4K">4K Ultra HD</option>
+                        <option value="SD">SD (Estándar)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Enlace del Stream (.m3u8 / HLS)</label>
+                    <input type="url" id="chan-url" placeholder="https://servidor.com/live/stream.m3u8">
+                </div>
+
+                <div class="form-group">
+                    <label>URL del Logo (Opcional - Imagen PNG/JPG)</label>
+                    <input type="url" id="chan-logo" placeholder="https://servidor.com/logo.png">
+                </div>
+
+                <div class="form-group">
+                    <label>Descripción del Canal</label>
+                    <textarea id="chan-desc" rows="2" placeholder="Detalles de la programación..."></textarea>
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-preview" onclick="testStreamAdmin()">🔍 Probar Señal</button>
+                    <button class="btn" onclick="saveChannel()">💾 Guardar Canal</button>
+                </div>
+            </div>
+
+            <!-- Vista Previa & Tabla de Canales -->
+            <div>
+                <div class="card" style="margin-bottom: 20px;">
+                    <h3>Vista Previa en Vivo</h3>
+                    <div class="preview-container">
+                        <video id="admin-preview-player" class="video-js vjs-default-skin" controls preload="auto">
+                            <p class="vjs-no-js">Tu navegador no soporta HLS.</p>
+                        </video>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Canales Registrados (<span id="chan-count">0</span>)</h3>
+                    <div style="max-height: 220px; overflow-y: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Categoría</th>
+                                    <th>Calidad</th>
+                                    <th>Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="channels-table-body">
+                                <!-- Inyección dinámica -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Librería Video.js -->
+    <script src="https://vjs.zencdn.net/7.20.3/video.min.js"></script>
+
+    <script>
+        // CONTRASEÑA DEL PANEL ADMINISTRADOR
+        const ADMIN_PASS = "admin123";
+
+        // Inicializar reproductores de Video.js
+        const mainPlayer = videojs('main-player');
+        const adminPlayer = videojs('admin-preview-player');
+
+        let isAuthenticated = false;
+        let currentCategory = 'Todas';
+
+        // Base de datos de canales por defecto (Si no hay guardados)
+        let channels = JSON.parse(localStorage.getItem('iptv_channels')) || [
+            {
+                id: 1,
+                name: "Mi Canal TV",
+                category: "Canal Propio",
+                quality: "HD",
+                url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
+                logo: "https://via.placeholder.com/40/8b5cf6/ffffff?text=MI+TV",
+                desc: "Canal exclusivo con transmisión en vivo las 24 horas."
+            },
+            {
+                id: 2,
+                name: "Noticias Global HD",
+                category: "Noticias",
+                quality: "HD",
+                url: "https://cdn.jwplayer.com/manifests/pBScAFlM.m3u8",
+                logo: "https://via.placeholder.com/40/3b82f6/ffffff?text=NEWS",
+                desc: "Señal internacional de noticias e información global."
+            },
+            {
+                id: 3,
+                name: "Cine & Acción 4K",
+                category: "Entretenimiento",
+                quality: "4K",
+                url: "https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8",
+                logo: "https://via.placeholder.com/40/f59e0b/000000?text=CINE",
+                desc: "Películas, series y entretenimiento en alta resolución."
+            }
+        ];
+
+        // --- SISTEMA DE NAVEGACIÓN ENTRE TV Y ADMIN ---
+        function switchView(view) {
+            if (view === 'admin' && !isAuthenticated) {
+                const pass = prompt("🔐 Ingrese la contraseña de Administrador:");
+                if (pass === ADMIN_PASS) {
+                    isAuthenticated = true;
+                } else {
+                    alert("❌ Contraseña incorrecta");
+                    return;
+                }
+            }
+
+            document.getElementById('view-tv').classList.remove('active');
+            document.getElementById('view-admin').classList.remove('active');
+            document.getElementById('btn-view-tv').style.display = 'none';
+            document.getElementById('btn-view-admin').style.display = 'none';
+
+            if (view === 'tv') {
+                document.getElementById('view-tv').classList.add('active');
+                document.getElementById('btn-view-admin').style.display = 'inline-block';
+                renderChannelsTV();
+            } else if (view === 'admin') {
+                document.getElementById('view-admin').classList.add('active');
+                document.getElementById('btn-view-tv').style.display = 'inline-block';
+                renderTableAdmin();
+            }
+        }
+
+        function openAdmin() {
+            switchView('admin');
+        }
+
+        // --- FUNCIONES DE LA VISTA PÚBLICA (TV) ---
+        function renderChannelsTV() {
+            const listContainer = document.getElementById('channel-list');
+            listContainer.innerHTML = '';
+
+            const filtered = currentCategory === 'Todas' 
+                ? channels 
+                : channels.filter(c => c.category === currentCategory);
+
+            if (filtered.length === 0) {
+                listContainer.innerHTML = `<li style="padding: 20px; text-align: center; color: #94a3b8;">No hay canales en esta categoría.</li>`;
+                return;
+            }
+
+            filtered.forEach((ch, index) => {
+                const li = document.createElement('li');
+                li.className = `channel-item ${index === 0 ? 'active' : ''}`;
+                
+                let badgeClass = 'badge-hd';
+                if(ch.category === 'Canal Propio') badgeClass = 'badge-own';
+                if(ch.quality === '4K') badgeClass = 'badge-4k';
+
+                li.innerHTML = `
+                    <img src="${ch.logo}" alt="Logo">
+                    <div class="channel-details">
+                        <h4>${ch.name} <span class="badge-tag ${badgeClass}">${ch.quality}</span></h4>
+                        <span>${ch.category}</span>
+                    </div>
+                `;
+
+                li.onclick = () => playChannelTV(ch, li);
+                listContainer.appendChild(li);
+            });
+
+            // Reproducir el primer canal de la lista seleccionada
+            if (filtered.length > 0) {
+                playChannelTV(filtered[0], listContainer.children[0]);
+            }
+        }
+
+        function playChannelTV(channel, element) {
+            document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active'));
+            if (element) element.classList.add('active');
+
+            document.getElementById('current-channel-title').textContent = channel.name;
+            document.getElementById('current-channel-desc').textContent = channel.desc;
+
+            mainPlayer.src({ src: channel.url, type: 'application/x-mpegURL' });
+            mainPlayer.play();
+        }
+
+        function filterCategory(cat) {
+            currentCategory = cat;
+            document.querySelectorAll('.cat-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.textContent.trim().includes(cat) || (cat === 'Todas' && btn.textContent === 'Todas'));
+            });
+            renderChannelsTV();
+        }
+
+        // --- FUNCIONES DEL PANEL ADMINISTRADOR ---
+        function testStreamAdmin() {
+            const url = document.getElementById('chan-url').value;
+            if (!url) {
+                alert('Por favor ingresa un enlace .m3u8 válido');
+                return;
+            }
+            adminPlayer.src({ src: url, type: 'application/x-mpegURL' });
+            adminPlayer.play();
+        }
+
+        function saveChannel() {
+            const name = document.getElementById('chan-name').value;
+            const category = document.getElementById('chan-cat').value;
+            const quality = document.getElementById('chan-quality').value;
+            const url = document.getElementById('chan-url').value;
+            const logo = document.getElementById('chan-logo').value || 'https://via.placeholder.com/40/3b82f6/ffffff?text=TV';
+            const desc = document.getElementById('chan-desc').value || 'Sin descripción disponible.';
+
+            if (!name || !url) {
+                alert('Ingresa al menos el nombre del canal y el enlace del stream (.m3u8)');
+                return;
+            }
+
+            const newChannel = {
+                id: Date.now(),
+                name,
+                category,
+                quality,
+                url,
+                logo,
+                desc
+            };
+
+            channels.push(newChannel);
+            localStorage.setItem('iptv_channels', JSON.stringify(channels));
+
+            // Limpiar los campos del formulario
+            document.getElementById('chan-name').value = '';
+            document.getElementById('chan-url').value = '';
+            document.getElementById('chan-logo').value = '';
+            document.getElementById('chan-desc').value = '';
+
+            renderTableAdmin();
+            alert('✅ ¡Canal guardado y listo para transmitirse!');
+        }
+
+        function deleteChannel(id) {
+            if (confirm('¿Deseas eliminar este canal de la programación?')) {
+                channels = channels.filter(c => c.id !== id);
+                localStorage.setItem('iptv_channels', JSON.stringify(channels));
+                renderTableAdmin();
+            }
+        }
+
+        function renderTableAdmin() {
+            const tbody = document.getElementById('channels-table-body');
+            document.getElementById('chan-count').textContent = channels.length;
+            tbody.innerHTML = '';
+
+            channels.forEach(ch => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${ch.name}</strong></td>
+                    <td>${ch.category}</td>
+                    <td><span class="badge-tag badge-hd">${ch.quality}</span></td>
+                    <td><button class="btn btn-danger" style="padding: 4px 8px; font-size:12px;" onclick="deleteChannel(${ch.id})">Eliminar</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Cargar los canales al abrir la web
+        renderChannelsTV();
+    </script>
+</body>
+</html>
