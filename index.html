@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GlobalTV IP - Plataforma IPTV</title>
-    <!-- HLS.js Library para máxima compatibilidad móvil -->
+    <!-- Librería nativa HLS rápida para móviles -->
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
         * {
@@ -22,7 +22,6 @@
             min-height: 100vh;
         }
 
-        /* Header */
         header {
             background-color: #1e293b;
             padding: 12px 16px;
@@ -70,7 +69,6 @@
             font-weight: bold;
         }
 
-        /* Container Principal */
         .main-container {
             display: flex;
             flex-direction: column;
@@ -79,12 +77,9 @@
         }
 
         @media (min-width: 900px) {
-            .main-container {
-                flex-direction: row;
-            }
+            .main-container { flex-direction: row; }
         }
 
-        /* Reproductor */
         .player-section {
             width: 100%;
             background-color: #000000;
@@ -93,15 +88,13 @@
         }
 
         @media (min-width: 900px) {
-            .player-section {
-                flex: 3;
-            }
+            .player-section { flex: 3; }
         }
 
         .video-wrapper {
             width: 100%;
             position: relative;
-            padding-top: 56.25%; /* 16:9 Aspect Ratio */
+            padding-top: 56.25%;
             background-color: #000;
         }
 
@@ -112,32 +105,6 @@
             width: 100%;
             height: 100%;
             object-fit: contain;
-        }
-
-        .play-overlay {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.6);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 10;
-            cursor: pointer;
-        }
-
-        .play-overlay.active {
-            display: flex;
-        }
-
-        .play-btn-big {
-            background: #2563eb;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 30px;
-            font-weight: bold;
-            font-size: 16px;
-            border: none;
-            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.5);
         }
 
         .channel-info {
@@ -156,7 +123,6 @@
             font-size: 13px;
         }
 
-        /* Sidebar */
         .sidebar {
             width: 100%;
             background-color: #0f172a;
@@ -234,12 +200,6 @@
             overflow: hidden;
         }
 
-        .logo-box img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
         .channel-details h4 {
             font-size: 14px;
             margin-bottom: 2px;
@@ -258,13 +218,10 @@
             padding: 2px 5px;
             border-radius: 3px;
             font-weight: bold;
+            background: #3b82f6;
+            color: #fff;
         }
 
-        .badge-hd { background: #3b82f6; color: #fff; }
-        .badge-4k { background: #f59e0b; color: #000; }
-        .badge-own { background: #8b5cf6; color: #fff; }
-
-        /* Modal Admin */
         .admin-modal {
             display: none;
             position: fixed;
@@ -337,14 +294,12 @@
     <div class="main-container">
         <div class="player-section">
             <div class="video-wrapper">
+                <!-- Atributos obligatorios para reproducción en móviles Android e iOS -->
                 <video id="video-player" controls playsinline webkit-playsinline muted autoplay></video>
-                <div id="play-overlay" class="play-overlay" onclick="startPlayback()">
-                    <button class="play-btn-big">▶ Toca para Reproducir</button>
-                </div>
             </div>
             <div class="channel-info">
                 <h2 id="current-channel-title">Cargando señal...</h2>
-                <p id="current-channel-desc">Selecciona un canal para iniciar.</p>
+                <p id="current-channel-desc">Selecciona un canal de la lista.</p>
             </div>
         </div>
 
@@ -360,7 +315,7 @@
         </div>
     </div>
 
-    <!-- Admin Modal -->
+    <!-- Panel Administrador -->
     <div id="admin-modal" class="admin-modal">
         <div class="admin-header">
             <h3>⚙️ Panel Administrador</h3>
@@ -383,8 +338,7 @@
                     <label>Calidad</label>
                     <select id="chan-quality"><option value="HD">HD</option><option value="4K">4K</option></select>
                 </div>
-                <div class="form-group"><label>URL Stream (.m3u8)</label><input type="url" id="chan-url"></div>
-                <div class="form-group"><label>URL Logo</label><input type="url" id="chan-logo"></div>
+                <div class="form-group"><label>URL Stream (.m3u8 HTTPS)</label><input type="url" id="chan-url"></div>
                 <div class="form-group"><label>Descripción</label><textarea id="chan-desc" rows="2"></textarea></div>
                 <button class="btn" onclick="saveChannel()">💾 Guardar Canal</button>
             </div>
@@ -403,10 +357,10 @@
     <script>
         const ADMIN_PASS = "admin123";
         const video = document.getElementById('video-player');
-        const overlay = document.getElementById('play-overlay');
-        let hls = null;
+        let hlsPlayer = null;
         let currentCategory = 'Todas';
 
+        // Canales Globales
         const defaultChannels = [
             {
                 id: 1,
@@ -414,7 +368,6 @@
                 category: "Canal Propio",
                 quality: "HD",
                 url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
-                logo: "",
                 tag: "MI TV",
                 desc: "Canal exclusivo con transmisión las 24 horas."
             },
@@ -424,7 +377,6 @@
                 category: "Noticias",
                 quality: "HD",
                 url: "https://cdn.jwplayer.com/manifests/pBScAFlM.m3u8",
-                logo: "",
                 tag: "NEWS",
                 desc: "Información y noticias internacionales."
             },
@@ -433,10 +385,10 @@
                 name: "AGAPE TV HD",
                 category: "Entretenimiento",
                 quality: "HD",
-                url: "https://d2e1asnsl7br7b.cloudfront.net/out/v1/450c26c6d0ae4e86a512702b8006a88e/index.m3u8",
-                logo: "https://via.placeholder.com/40/10b981/ffffff?text=AGAPE",
+                // Enlace HLS público compatible con HTTPS/CORS para móviles
+                url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
                 tag: "AGAPE",
-                desc: "Señal en vivo de Ágape TV El Salvador."
+                desc: "Señal en vivo de Ágape TV."
             }
         ];
 
@@ -446,29 +398,28 @@
             if (!channels.some(c => c.url === item.url)) channels.push(item);
         });
 
-        function playStream(url) {
-            overlay.classList.remove('active');
+        function loadStream(url) {
+            if (hlsPlayer) {
+                hlsPlayer.destroy();
+            }
+
             if (Hls.isSupported()) {
-                if (hls) hls.destroy();
-                hls = new Hls({ enableWorker: true, lowLatencyMode: true });
-                hls.loadSource(url);
-                hls.attachMedia(video);
-                hls.on(Hls.Events.MANIFEST_PARSED, function() {
-                    video.play().catch(() => overlay.classList.add('active'));
+                hlsPlayer = new Hls({
+                    enableWorker: true,
+                    lowLatencyMode: true
+                });
+                hlsPlayer.loadSource(url);
+                hlsPlayer.attachMedia(video);
+                hlsPlayer.on(Hls.Events.MANIFEST_PARSED, function() {
+                    video.play().catch(() => console.log("Autoplay con sonido bloqueado."));
                 });
             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                // Soporte nativo para iOS Safari
+                // Soporte nativo de HLS para Safari en iOS
                 video.src = url;
                 video.addEventListener('loadedmetadata', function() {
-                    video.play().catch(() => overlay.classList.add('active'));
+                    video.play();
                 });
             }
-        }
-
-        function startPlayback() {
-            video.muted = false;
-            video.play();
-            overlay.classList.remove('active');
         }
 
         function playChannelTV(channel, element) {
@@ -478,7 +429,7 @@
             document.getElementById('current-channel-title').textContent = channel.name;
             document.getElementById('current-channel-desc').textContent = channel.desc;
 
-            playStream(channel.url);
+            loadStream(channel.url);
         }
 
         function renderChannelsTV() {
@@ -491,12 +442,11 @@
                 const li = document.createElement('li');
                 li.className = `channel-item ${index === 0 ? 'active' : ''}`;
                 let tagText = ch.tag || ch.name.substring(0, 4).toUpperCase();
-                let logoContent = ch.logo ? `<img src="${ch.logo}" onerror="this.parentNode.innerHTML='<span>${tagText}</span>'">` : `<span>${tagText}</span>`;
 
                 li.innerHTML = `
-                    <div class="logo-box">${logoContent}</div>
+                    <div class="logo-box"><span>${tagText}</span></div>
                     <div class="channel-details">
-                        <h4>${ch.name} <span class="badge-tag badge-hd">${ch.quality}</span></h4>
+                        <h4>${ch.name} <span class="badge-tag">${ch.quality}</span></h4>
                         <span>${ch.category}</span>
                     </div>
                 `;
@@ -533,12 +483,11 @@
             const category = document.getElementById('chan-cat').value;
             const quality = document.getElementById('chan-quality').value;
             const url = document.getElementById('chan-url').value;
-            const logo = document.getElementById('chan-logo').value;
             const desc = document.getElementById('chan-desc').value || 'Sin descripción.';
 
             if (!name || !url) { alert('Completa nombre y URL .m3u8'); return; }
 
-            const newChan = { id: Date.now(), name, category, quality, url, logo, desc, tag: name.substring(0, 4).toUpperCase() };
+            const newChan = { id: Date.now(), name, category, quality, url, desc, tag: name.substring(0, 4).toUpperCase() };
             channels.push(newChan);
             localSaved.push(newChan);
             localStorage.setItem('iptv_channels', JSON.stringify(localSaved));
