@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GlobalTV IP - Plataforma IPTV</title>
+    <!-- Video.js CSS para reproducción de flujos HLS (.m3u8) -->
     <link href="https://vjs.zencdn.net/7.20.3/video-js.css" rel="stylesheet" />
     <style>
         * {
@@ -83,7 +84,7 @@
             }
         }
 
-        /* Reproductor */
+        /* Reproductor de Vídeo */
         .player-section {
             width: 100%;
             background-color: #000000;
@@ -100,7 +101,7 @@
         .video-wrapper {
             width: 100%;
             position: relative;
-            padding-top: 56.25%; /* Aspect ratio 16:9 */
+            padding-top: 56.25%; /* Relación de aspecto 16:9 */
         }
 
         .video-js {
@@ -310,7 +311,6 @@
         }
 
         .btn-danger { background-color: #ef4444; width: auto; }
-        .btn-preview { background-color: #10b981; }
 
         table {
             width: 100%;
@@ -368,7 +368,7 @@
         </div>
     </div>
 
-    <!-- Modal Administrador (Separado Limpiamente) -->
+    <!-- Modal Administrador -->
     <div id="admin-modal" class="admin-modal">
         <div class="admin-header">
             <h3>⚙️ Panel Administrador</h3>
@@ -439,13 +439,15 @@
         </div>
     </div>
 
+    <!-- Script de Video.js y Lógica de Aplicación -->
     <script src="https://vjs.zencdn.net/7.20.3/video.min.js"></script>
     <script>
         const ADMIN_PASS = "admin123";
         const mainPlayer = videojs('main-player');
         let currentCategory = 'Todas';
 
-        let channels = JSON.parse(localStorage.getItem('iptv_channels')) || [
+        // 📌 CANALES GLOBALES FIJOS (Sustituye o agrega aquí tus señales permanentes)
+        const defaultChannels = [
             {
                 id: 1,
                 name: "Mi Canal TV",
@@ -463,8 +465,21 @@
                 url: "https://cdn.jwplayer.com/manifests/pBScAFlM.m3u8",
                 logo: "https://via.placeholder.com/40/3b82f6/ffffff?text=NEWS",
                 desc: "Información y noticias internacionales."
+            },
+            {
+                id: 3,
+                name: "Cine & Acción 4K",
+                category: "Entretenimiento",
+                quality: "4K",
+                url: "https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8",
+                logo: "https://via.placeholder.com/40/f59e0b/000000?text=CINE",
+                desc: "Películas y series en alta definición."
             }
         ];
+
+        // Cargar canales guardados en la memoria del navegador y combinar con la lista fija
+        let localSaved = JSON.parse(localStorage.getItem('iptv_channels')) || [];
+        let channels = [...defaultChannels, ...localSaved];
 
         function openAdmin() {
             const pass = prompt("🔐 Clave de Administrador:");
@@ -549,8 +564,11 @@
                 return;
             }
 
-            channels.push({ id: Date.now(), name, category, quality, url, logo, desc });
-            localStorage.setItem('iptv_channels', JSON.stringify(channels));
+            const newChan = { id: Date.now(), name, category, quality, url, logo, desc };
+            channels.push(newChan);
+            
+            localSaved.push(newChan);
+            localStorage.setItem('iptv_channels', JSON.stringify(localSaved));
 
             document.getElementById('chan-name').value = '';
             document.getElementById('chan-url').value = '';
@@ -564,7 +582,8 @@
         function deleteChannel(id) {
             if (confirm('¿Eliminar este canal?')) {
                 channels = channels.filter(c => c.id !== id);
-                localStorage.setItem('iptv_channels', JSON.stringify(channels));
+                localSaved = localSaved.filter(c => c.id !== id);
+                localStorage.setItem('iptv_channels', JSON.stringify(localSaved));
                 renderTableAdmin();
             }
         }
