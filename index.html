@@ -446,7 +446,7 @@
         const mainPlayer = videojs('main-player');
         let currentCategory = 'Todas';
 
-        // 📌 CANALES GLOBALES FIJOS (Sustituye o agrega aquí tus señales permanentes)
+        // 📌 LISTA PERMANENTE DE CANALES (Global para PC y Celulares)
         const defaultChannels = [
             {
                 id: 1,
@@ -474,12 +474,28 @@
                 url: "https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8",
                 logo: "https://via.placeholder.com/40/f59e0b/000000?text=CINE",
                 desc: "Películas y series en alta definición."
+            },
+            {
+                id: 4,
+                name: "AGAPE TV HD",
+                category: "Entretenimiento",
+                quality: "HD",
+                url: "https://stream.agape.tv/hls/live.m3u8", // Reemplaza por la URL .m3u8 exacta si usas un servidor específico
+                logo: "https://via.placeholder.com/40/10b981/ffffff?text=AGAPE",
+                desc: "Transmisión en vivo de Ágape TV."
             }
         ];
 
-        // Cargar canales guardados en la memoria del navegador y combinar con la lista fija
+        // Cargar canales del almacenamiento local y fusionar con la lista global
         let localSaved = JSON.parse(localStorage.getItem('iptv_channels')) || [];
-        let channels = [...defaultChannels, ...localSaved];
+        
+        // Filtrar duplicados en caso de guardar con la misma URL
+        let channels = [...defaultChannels];
+        localSaved.forEach(localItem => {
+            if (!channels.some(ch => ch.url === localItem.url)) {
+                channels.push(localItem);
+            }
+        });
 
         function openAdmin() {
             const pass = prompt("🔐 Clave de Administrador:");
