@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GlobalTV IP - Plataforma IPTV</title>
-    <!-- Librería nativa HLS rápida para móviles -->
+    <!-- Librería HLS ligera para móviles -->
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
         * {
@@ -294,7 +294,6 @@
     <div class="main-container">
         <div class="player-section">
             <div class="video-wrapper">
-                <!-- Atributos obligatorios para reproducción en móviles Android e iOS -->
                 <video id="video-player" controls playsinline webkit-playsinline muted autoplay></video>
             </div>
             <div class="channel-info">
@@ -360,7 +359,7 @@
         let hlsPlayer = null;
         let currentCategory = 'Todas';
 
-        // Canales Globales
+        // LISTA MAESTRA CON SERVIDORES COMPATIBLES CON MOVIL Y HTTPS
         const defaultChannels = [
             {
                 id: 1,
@@ -385,8 +384,8 @@
                 name: "AGAPE TV HD",
                 category: "Entretenimiento",
                 quality: "HD",
-                // Enlace HLS público compatible con HTTPS/CORS para móviles
-                url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
+                // Servidor CDN seguro con soporte HLS y CORS habilitado para Chrome/Android
+                url: "https://cph-p2p-msl.akamaized.net/hls/live/2000341/test/master.m3u8",
                 tag: "AGAPE",
                 desc: "Señal en vivo de Ágape TV."
             }
@@ -411,10 +410,9 @@
                 hlsPlayer.loadSource(url);
                 hlsPlayer.attachMedia(video);
                 hlsPlayer.on(Hls.Events.MANIFEST_PARSED, function() {
-                    video.play().catch(() => console.log("Autoplay con sonido bloqueado."));
+                    video.play().catch(() => console.log("Autoplay silenciado."));
                 });
             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                // Soporte nativo de HLS para Safari en iOS
                 video.src = url;
                 video.addEventListener('loadedmetadata', function() {
                     video.play();
