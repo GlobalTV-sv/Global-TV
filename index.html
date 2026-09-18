@@ -300,7 +300,7 @@
                             <option value="Entretenimiento">Entretenimiento</option>
                         </select>
                     </div>
-                    <div class="form-group"><label>URL Stream (.m3u8 HTTPS)</label><input type="url" id="chan-url" placeholder="https://servidor.com/live.m3u8"></div>
+                    <div class="form-group"><label>URL Stream (.m3u8 HTTPS / HTTP)</label><input type="url" id="chan-url" placeholder="http://45.5.118.188:8000/play/a00j/index.m3u8"></div>
                     <button class="btn" id="btn-save-chan" onclick="saveChannel()">☁️ Guardar Canal</button>
                     <button class="btn btn-danger" id="btn-cancel-edit" style="display:none; margin-top:5px; width:100%;" onclick="resetChanForm()">Cancelar Edición</button>
                 </div>
@@ -469,17 +469,22 @@
             renderTableAdmin();
         });
 
-        // Cargar Reproducción con Control de Fallos / Mantenimiento
+        // Cargar Reproducción con Validación para URLs HTTP/HTTPS y Control de Fallos
         function loadStream(url) {
             errorOverlay.classList.remove('active');
             if (streamTimeout) clearTimeout(streamTimeout);
 
-            // Tiempo límite de 8 segundos para mostrar Mantenimiento si no abre la transmisión
+            // Verificación previa: si el sitio corre en HTTPS y la URL es HTTP insegura
+            if (window.location.protocol === 'https:' && url.startsWith('http://')) {
+                console.warn("Advertencia: Intento de cargar señal HTTP insegura desde HTTPS.");
+            }
+
+            // Tiempo límite de 6 segundos para mostrar Mantenimiento si la IP no responde
             streamTimeout = setTimeout(() => {
                 if (video.paused || video.readyState < 2) {
                     errorOverlay.classList.add('active');
                 }
-            }, 8000);
+            }, 6000);
 
             if (hlsPlayer) hlsPlayer.destroy();
 
@@ -492,7 +497,9 @@
                     video.play().then(() => {
                         clearTimeout(streamTimeout);
                         errorOverlay.classList.remove('active');
-                    }).catch(() => {});
+                    }).catch(() => {
+                        errorOverlay.classList.add('active');
+                    });
                 });
 
                 hlsPlayer.on(Hls.Events.ERROR, (event, data) => {
