@@ -26,7 +26,7 @@
             min-height: 100vh;
         }
 
-        /* Pantalla de Inicio de Sesión para Clientes */
+        /* Pantalla de Inicio de Sesión */
         .login-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -135,7 +135,7 @@
         .channel-details h4 { font-size: 14px; margin-bottom: 2px; display: flex; align-items: center; gap: 6px; }
         .channel-details span { font-size: 12px; color: #94a3b8; }
 
-        /* Panel Modal de Administración Privado */
+        /* Panel Modal de Administración */
         .admin-modal {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-color: #0f172a; z-index: 1000; overflow-y: auto; padding: 15px;
@@ -169,11 +169,11 @@
 </head>
 <body>
 
-    <!-- Pantalla de Login General para Clientes -->
+    <!-- Pantalla de Login -->
     <div id="login-overlay" class="login-overlay">
         <div class="login-card">
             <h2>🌐 GLOBAL TV IP</h2>
-            <p>Ingresa las credenciales asignadas por tu proveedor</p>
+            <p>Ingresa tus credenciales de acceso</p>
             <input type="text" id="login-user" placeholder="Usuario">
             <input type="password" id="login-pass" placeholder="Contraseña">
             <button class="btn" onclick="loginUser()">Acceder a la Plataforma</button>
@@ -212,7 +212,7 @@
         </div>
     </div>
 
-    <!-- Panel de Control Privado (Solo tú puedes ingresar con la clave admin123) -->
+    <!-- Panel de Control Privado -->
     <div id="admin-modal" class="admin-modal">
         <div class="admin-header">
             <h3>⚙️ Gestión Privada de Usuarios y Canales</h3>
@@ -223,7 +223,7 @@
             <!-- Formulario Interno de Creación de Usuarios -->
             <div>
                 <div class="card">
-                    <h3>👤 Asignar Nuevo Usuario (30 Días de Servicio)</h3>
+                    <h3>👤 Asignar Nuevo Usuario (30 Días)</h3>
                     <div class="form-group"><label>Nombre de Usuario</label><input type="text" id="new-username" placeholder="ej: cliente01"></div>
                     <div class="form-group"><label>Contraseña Asignada</label><input type="text" id="new-userpass" placeholder="ej: clave2026"></div>
                     <button class="btn btn-success" onclick="createSystemUser()">🔐 Crear y Dar 30 Días</button>
@@ -238,7 +238,7 @@
                                     <th>Estado</th>
                                     <th>Usuario</th>
                                     <th>Clave</th>
-                                    <th>Tiempo Restante</th>
+                                    <th>Restante</th>
                                     <th>Acción</th>
                                 </tr>
                             </thead>
@@ -310,9 +310,16 @@
 
             if (!u || !p) { alert('Por favor ingresa usuario y contraseña'); return; }
 
+            // Acceso de Administrador Maestro por Defecto
+            if (u === "admin" && p === "admin123") {
+                document.getElementById('current-user-display').textContent = '👤 Admin Master';
+                document.getElementById('login-overlay').style.display = 'none';
+                return;
+            }
+
             usersRef.orderByChild('username').equalTo(u).once('value', snapshot => {
                 const data = snapshot.val();
-                if (!data) { alert('Usuario no registrado o inexistente'); return; }
+                if (!data) { alert('Usuario no registrado'); return; }
 
                 const key = Object.keys(data)[0];
                 const userData = data[key];
@@ -332,7 +339,7 @@
                 document.getElementById('current-user-display').textContent = '👤 ' + userData.username;
                 document.getElementById('login-overlay').style.display = 'none';
 
-                // Monitor en tiempo real para verificar presencia
+                // Monitor de presencia
                 const userPresenceRef = db.ref(`iptv_users/${key}/online`);
                 const connectedRef = db.ref('.info/connected');
 
@@ -345,7 +352,7 @@
             });
         }
 
-        // Obtener lista interna de usuarios
+        // Obtener usuarios desde Firebase
         usersRef.on('value', snapshot => {
             const data = snapshot.val();
             systemUsers = [];
@@ -355,14 +362,13 @@
             renderUsersTable();
         });
 
-        // Generar usuario con 30 días (Operación privada)
         function createSystemUser() {
             const u = document.getElementById('new-username').value.trim();
             const p = document.getElementById('new-userpass').value.trim();
 
-            if (!u || !p) { alert('Escribe el usuario y la contraseña a asignar'); return; }
+            if (!u || !p) { alert('Escribe el usuario y la contraseña'); return; }
 
-            const expire = Date.now() + (30 * 24 * 60 * 60 * 1000); // 30 Días contados desde hoy
+            const expire = Date.now() + (30 * 24 * 60 * 60 * 1000); // 30 días válidos
 
             usersRef.push({
                 username: u,
@@ -372,20 +378,19 @@
             }).then(() => {
                 document.getElementById('new-username').value = '';
                 document.getElementById('new-userpass').value = '';
-                alert('✅ Cliente registrado con éxito con 30 días de servicio.');
+                alert('✅ Cliente creado con 30 días de acceso.');
             });
         }
 
-        // Extender suscripción por 30 días adicionales
         function renewUser(key) {
             const newExpire = Date.now() + (30 * 24 * 60 * 60 * 1000);
             usersRef.child(key).update({ expireAt: newExpire }).then(() => {
-                alert('🔄 Membresía del cliente renovada por 30 días adicionales.');
+                alert('🔄 Membresía renovada por 30 días más.');
             });
         }
 
         function deleteUser(key) {
-            if (confirm('¿Eliminar acceso a este usuario?')) {
+            if (confirm('¿Eliminar usuario?')) {
                 usersRef.child(key).remove();
             }
         }
@@ -414,7 +419,7 @@
             });
         }
 
-        // Obtener Canales
+        // Obtener canales
         channelsRef.on('value', snapshot => {
             const data = snapshot.val();
             channels = [];
