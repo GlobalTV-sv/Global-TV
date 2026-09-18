@@ -96,9 +96,36 @@
 
         .video-wrapper {
             width: 100%; position: relative; padding-top: 56.25%; background-color: #000;
+            overflow: hidden;
         }
 
         video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; }
+
+        /* Pantalla Mantenimiento / Sin Señal */
+        .error-overlay {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #0f172a url('https://images.unsplash.com/photo-1594324144100-37213ee72859?q=80&w=1000&auto=format&fit=crop') center/cover no-repeat;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 10;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .error-overlay.active { display: flex; }
+        .error-box {
+            background: rgba(15, 23, 42, 0.85);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #ef4444;
+            backdrop-filter: blur(4px);
+        }
+
+        .error-box h3 { color: #ef4444; margin-bottom: 5px; font-size: 16px; }
+        .error-box p { color: #cbd5e1; font-size: 12px; }
 
         .channel-info { padding: 15px; background-color: #1e293b; }
         .channel-info h2 { font-size: 18px; color: #f8fafc; margin-bottom: 4px; }
@@ -112,7 +139,7 @@
 
         .category-filter {
             padding: 10px; background-color: #1e293b; border-bottom: 1px solid #334155;
-            display: flex; gap: 8px; overflow-x: auto;
+            display: flex; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch;
         }
 
         .cat-btn {
@@ -135,7 +162,7 @@
         .channel-details h4 { font-size: 14px; margin-bottom: 2px; display: flex; align-items: center; gap: 6px; }
         .channel-details span { font-size: 12px; color: #94a3b8; }
 
-        /* Panel Modal de Administración */
+        /* Panel Modal Admin */
         .admin-modal {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-color: #0f172a; z-index: 1000; overflow-y: auto; padding: 15px;
@@ -156,6 +183,7 @@
 
         .btn { background-color: #2563eb; color: white; border: none; padding: 9px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; width: 100%; }
         .btn-success { background-color: #10b981; }
+        .btn-warning { background-color: #f59e0b; width: auto; }
         .btn-danger { background-color: #ef4444; width: auto; }
 
         .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
@@ -169,11 +197,11 @@
 </head>
 <body>
 
-    <!-- Pantalla de Login -->
+    <!-- Pantalla Login -->
     <div id="login-overlay" class="login-overlay">
         <div class="login-card">
             <h2>🌐 GLOBAL TV IP</h2>
-            <p>Ingresa tus credenciales de acceso</p>
+            <p>Ingresa las credenciales asignadas por tu proveedor</p>
             <input type="text" id="login-user" placeholder="Usuario">
             <input type="password" id="login-pass" placeholder="Contraseña">
             <button class="btn" onclick="loginUser()">Acceder a la Plataforma</button>
@@ -193,6 +221,13 @@
         <div class="player-section">
             <div class="video-wrapper">
                 <video id="video-player" controls playsinline webkit-playsinline muted autoplay></video>
+                <!-- Capa de Error/Mantenimiento -->
+                <div id="error-overlay" class="error-overlay">
+                    <div class="error-box">
+                        <h3>⚠️ SEÑAL EN MANTENIMIENTO</h3>
+                        <p>La transmisión no está disponible temporalmente.</p>
+                    </div>
+                </div>
             </div>
             <div class="channel-info">
                 <h2 id="current-channel-title">Bienvenido...</h2>
@@ -204,6 +239,7 @@
             <div class="category-filter">
                 <button class="cat-btn active" onclick="filterCategory('Todas')">Todas</button>
                 <button class="cat-btn" onclick="filterCategory('Canal Propio')">Propio</button>
+                <button class="cat-btn" onclick="filterCategory('Religioso')">Religioso</button>
                 <button class="cat-btn" onclick="filterCategory('Noticias')">Noticias</button>
                 <button class="cat-btn" onclick="filterCategory('Deportes')">Deportes</button>
                 <button class="cat-btn" onclick="filterCategory('Entretenimiento')">Entretenimiento</button>
@@ -212,7 +248,7 @@
         </div>
     </div>
 
-    <!-- Panel de Control Privado -->
+    <!-- Panel Admin -->
     <div id="admin-modal" class="admin-modal">
         <div class="admin-header">
             <h3>⚙️ Gestión Privada de Usuarios y Canales</h3>
@@ -220,7 +256,7 @@
         </div>
 
         <div class="admin-grid">
-            <!-- Formulario Interno de Creación de Usuarios -->
+            <!-- Sección Usuarios -->
             <div>
                 <div class="card">
                     <h3>👤 Asignar Nuevo Usuario (30 Días)</h3>
@@ -248,29 +284,32 @@
                 </div>
             </div>
 
-            <!-- Gestión de Canales -->
+            <!-- Sección Canales -->
             <div>
                 <div class="card">
-                    <h3>📺 Registrar Nueva Señal</h3>
-                    <div class="form-group"><label>Nombre del Canal</label><input type="text" id="chan-name" placeholder="Ej: Canal 10 HD"></div>
+                    <h3 id="form-chan-title">📺 Registrar Nueva Señal</h3>
+                    <input type="hidden" id="edit-chan-key">
+                    <div class="form-group"><label>Nombre del Canal</label><input type="text" id="chan-name" placeholder="Ej: Ágape TV HD"></div>
                     <div class="form-group">
                         <label>Categoría</label>
                         <select id="chan-cat">
                             <option value="Canal Propio">Canal Propio</option>
+                            <option value="Religioso">Religioso</option>
                             <option value="Noticias">Noticias</option>
                             <option value="Deportes">Deportes</option>
                             <option value="Entretenimiento">Entretenimiento</option>
                         </select>
                     </div>
                     <div class="form-group"><label>URL Stream (.m3u8 HTTPS)</label><input type="url" id="chan-url" placeholder="https://servidor.com/live.m3u8"></div>
-                    <button class="btn" onclick="saveChannel()">☁️ Guardar Canal</button>
+                    <button class="btn" id="btn-save-chan" onclick="saveChannel()">☁️ Guardar Canal</button>
+                    <button class="btn btn-danger" id="btn-cancel-edit" style="display:none; margin-top:5px; width:100%;" onclick="resetChanForm()">Cancelar Edición</button>
                 </div>
 
                 <div class="card">
                     <h3>Canales Registrados (<span id="chan-count">0</span>)</h3>
                     <div style="max-height: 200px; overflow-y: auto;">
                         <table>
-                            <thead><tr><th>Nombre</th><th>Cat.</th><th>Acción</th></tr></thead>
+                            <thead><tr><th>Nombre</th><th>Cat.</th><th>Acciones</th></tr></thead>
                             <tbody id="channels-table-body"></tbody>
                         </table>
                     </div>
@@ -297,11 +336,13 @@
 
         const ADMIN_PASS = "admin123";
         const video = document.getElementById('video-player');
+        const errorOverlay = document.getElementById('error-overlay');
         let hlsPlayer = null;
         let currentCategory = 'Todas';
         let channels = [];
         let systemUsers = [];
         let currentUserKey = null;
+        let streamTimeout = null;
 
         // Login de Usuarios
         function loginUser() {
@@ -310,7 +351,6 @@
 
             if (!u || !p) { alert('Por favor ingresa usuario y contraseña'); return; }
 
-            // Acceso de Administrador Maestro por Defecto
             if (u === "admin" && p === "admin123") {
                 document.getElementById('current-user-display').textContent = '👤 Admin Master';
                 document.getElementById('login-overlay').style.display = 'none';
@@ -331,7 +371,7 @@
 
                 const now = Date.now();
                 if (now > userData.expireAt) {
-                    alert('❌ Tu periodo de 30 días ha vencido. Contacta al administrador para renovar.');
+                    alert('❌ Tu periodo de 30 días ha vencido. Contacta al administrador.');
                     return;
                 }
 
@@ -339,7 +379,6 @@
                 document.getElementById('current-user-display').textContent = '👤 ' + userData.username;
                 document.getElementById('login-overlay').style.display = 'none';
 
-                // Monitor de presencia
                 const userPresenceRef = db.ref(`iptv_users/${key}/online`);
                 const connectedRef = db.ref('.info/connected');
 
@@ -352,7 +391,7 @@
             });
         }
 
-        // Obtener usuarios desde Firebase
+        // Obtener Usuarios
         usersRef.on('value', snapshot => {
             const data = snapshot.val();
             systemUsers = [];
@@ -368,7 +407,7 @@
 
             if (!u || !p) { alert('Escribe el usuario y la contraseña'); return; }
 
-            const expire = Date.now() + (30 * 24 * 60 * 60 * 1000); // 30 días válidos
+            const expire = Date.now() + (30 * 24 * 60 * 60 * 1000);
 
             usersRef.push({
                 username: u,
@@ -390,9 +429,7 @@
         }
 
         function deleteUser(key) {
-            if (confirm('¿Eliminar usuario?')) {
-                usersRef.child(key).remove();
-            }
+            if (confirm('¿Eliminar usuario?')) usersRef.child(key).remove();
         }
 
         function renderUsersTable() {
@@ -419,28 +456,60 @@
             });
         }
 
-        // Obtener canales
+        // Obtener Canales y ORDENAR ALFABÉTICAMENTE
         channelsRef.on('value', snapshot => {
             const data = snapshot.val();
             channels = [];
             if (data) {
                 Object.keys(data).forEach(key => channels.push({ firebaseId: key, ...data[key] }));
+                // Orden alfabético A-Z por nombre
+                channels.sort((a, b) => a.name.localeCompare(b.name));
             }
             renderChannelsTV();
             renderTableAdmin();
         });
 
+        // Cargar Reproducción con Control de Fallos / Mantenimiento
         function loadStream(url) {
+            errorOverlay.classList.remove('active');
+            if (streamTimeout) clearTimeout(streamTimeout);
+
+            // Tiempo límite de 8 segundos para mostrar Mantenimiento si no abre la transmisión
+            streamTimeout = setTimeout(() => {
+                if (video.paused || video.readyState < 2) {
+                    errorOverlay.classList.add('active');
+                }
+            }, 8000);
+
             if (hlsPlayer) hlsPlayer.destroy();
 
             if (Hls.isSupported()) {
                 hlsPlayer = new Hls({ enableWorker: true, lowLatencyMode: true });
                 hlsPlayer.loadSource(url);
                 hlsPlayer.attachMedia(video);
-                hlsPlayer.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(() => {}));
+
+                hlsPlayer.on(Hls.Events.MANIFEST_PARSED, () => {
+                    video.play().then(() => {
+                        clearTimeout(streamTimeout);
+                        errorOverlay.classList.remove('active');
+                    }).catch(() => {});
+                });
+
+                hlsPlayer.on(Hls.Events.ERROR, (event, data) => {
+                    if (data.fatal) {
+                        errorOverlay.classList.add('active');
+                    }
+                });
             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                 video.src = url;
-                video.addEventListener('loadedmetadata', () => video.play());
+                video.addEventListener('loadedmetadata', () => {
+                    video.play();
+                    clearTimeout(streamTimeout);
+                    errorOverlay.classList.remove('active');
+                });
+                video.addEventListener('error', () => {
+                    errorOverlay.classList.add('active');
+                });
             }
         }
 
@@ -496,20 +565,54 @@
 
         function closeAdmin() {
             document.getElementById('admin-modal').classList.remove('active');
+            resetChanForm();
         }
 
+        // GUARDAR / EDITAR CANAL
         function saveChannel() {
-            const name = document.getElementById('chan-name').value;
+            const name = document.getElementById('chan-name').value.trim();
             const category = document.getElementById('chan-cat').value;
-            const url = document.getElementById('chan-url').value;
+            const url = document.getElementById('chan-url').value.trim();
+            const editKey = document.getElementById('edit-chan-key').value;
 
             if (!name || !url) { alert('Ingresa nombre y URL'); return; }
 
-            channelsRef.push({ name, category, url }).then(() => {
-                document.getElementById('chan-name').value = '';
-                document.getElementById('chan-url').value = '';
-                alert('☁️ Canal guardado correctamente');
-            });
+            if (editKey) {
+                // Actualizar Canal Existente
+                channelsRef.child(editKey).update({ name, category, url }).then(() => {
+                    alert('✏️ Canal actualizado correctamente');
+                    resetChanForm();
+                });
+            } else {
+                // Guardar Nuevo Canal
+                channelsRef.push({ name, category, url }).then(() => {
+                    alert('☁️ Canal guardado correctamente');
+                    resetChanForm();
+                });
+            }
+        }
+
+        function editChannel(firebaseId) {
+            const ch = channels.find(item => item.firebaseId === firebaseId);
+            if (ch) {
+                document.getElementById('edit-chan-key').value = ch.firebaseId;
+                document.getElementById('chan-name').value = ch.name;
+                document.getElementById('chan-cat').value = ch.category;
+                document.getElementById('chan-url').value = ch.url;
+
+                document.getElementById('form-chan-title').textContent = "✏️ Modificar Señal";
+                document.getElementById('btn-save-chan').textContent = "💾 Actualizar Cambios";
+                document.getElementById('btn-cancel-edit').style.display = "block";
+            }
+        }
+
+        function resetChanForm() {
+            document.getElementById('edit-chan-key').value = '';
+            document.getElementById('chan-name').value = '';
+            document.getElementById('chan-url').value = '';
+            document.getElementById('form-chan-title').textContent = "📺 Registrar Nueva Señal";
+            document.getElementById('btn-save-chan').textContent = "☁️ Guardar Canal";
+            document.getElementById('btn-cancel-edit').style.display = "none";
         }
 
         function deleteChannel(firebaseId) {
@@ -522,7 +625,14 @@
             tbody.innerHTML = '';
             channels.forEach(ch => {
                 const tr = document.createElement('tr');
-                tr.innerHTML = `<td><strong>${ch.name}</strong></td><td>${ch.category}</td><td><button class="btn btn-danger" style="padding: 2px 6px; font-size:10px;" onclick="deleteChannel('${ch.firebaseId}')">X</button></td>`;
+                tr.innerHTML = `
+                    <td><strong>${ch.name}</strong></td>
+                    <td>${ch.category}</td>
+                    <td>
+                        <button class="btn btn-warning" style="padding: 2px 6px; font-size:10px;" onclick="editChannel('${ch.firebaseId}')">✏️</button>
+                        <button class="btn btn-danger" style="padding: 2px 6px; font-size:10px;" onclick="deleteChannel('${ch.firebaseId}')">X</button>
+                    </td>
+                `;
                 tbody.appendChild(tr);
             });
         }
