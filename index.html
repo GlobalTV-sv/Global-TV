@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GlobalTV IP - Plataforma IPTV</title>
-    <!-- Video.js CSS para reproducción de flujos HLS (.m3u8) -->
+    <!-- Video.js CSS -->
     <link href="https://vjs.zencdn.net/7.20.3/video-js.css" rel="stylesheet" />
     <style>
         * {
@@ -84,7 +84,7 @@
             }
         }
 
-        /* Reproductor de Vídeo */
+        /* Reproductor */
         .player-section {
             width: 100%;
             background-color: #000000;
@@ -101,10 +101,11 @@
         .video-wrapper {
             width: 100%;
             position: relative;
-            padding-top: 56.25%; /* Relación de aspecto 16:9 */
+            padding-top: 56.25%; /* Relación 16:9 */
+            background-color: #000;
         }
 
-        .video-js {
+        .video-js, video {
             position: absolute;
             top: 0;
             left: 0;
@@ -190,13 +191,27 @@
             background-color: #2563eb;
         }
 
-        .channel-item img {
-            width: 40px;
-            height: 40px;
+        /* Contenedor del Logo con respaldo local */
+        .logo-box {
+            width: 42px;
+            height: 42px;
             border-radius: 6px;
             margin-right: 12px;
-            object-fit: cover;
             background: #334155;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 11px;
+            color: #fff;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .logo-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .channel-details h4 {
@@ -227,7 +242,7 @@
         .badge-4k { background: #f59e0b; color: #000; }
         .badge-own { background: #8b5cf6; color: #fff; }
 
-        /* Panel Administrador Modal */
+        /* Modal Administrador */
         .admin-modal {
             display: none;
             position: fixed;
@@ -332,26 +347,24 @@
 
     <!-- Header -->
     <header>
-        <div class="logo">
-            🌐 GLOBAL TV IP
-        </div>
+        <div class="logo">🌐 GLOBAL TV IP</div>
         <div class="nav-controls">
             <span class="badge-live">EN VIVO</span>
             <button class="btn-admin-nav" onclick="openAdmin()">⚙️ Admin</button>
         </div>
     </header>
 
-    <!-- Reproductor + Lista de Canales -->
+    <!-- Reproductor Principal -->
     <div class="main-container">
         <div class="player-section">
             <div class="video-wrapper">
-                <video id="main-player" class="video-js vjs-default-skin vjs-big-play-centered" controls autoplay playsinline preload="auto">
+                <video id="main-player" class="video-js vjs-default-skin vjs-big-play-centered" controls playsinline webkit-playsinline preload="auto">
                     <source src="" type="application/x-mpegURL">
                 </video>
             </div>
             <div class="channel-info">
                 <h2 id="current-channel-title">Cargando canales...</h2>
-                <p id="current-channel-desc">Selecciona un canal para reproducir.</p>
+                <p id="current-channel-desc">Selecciona un canal para reproducir en vivo.</p>
             </div>
         </div>
 
@@ -368,7 +381,7 @@
         </div>
     </div>
 
-    <!-- Modal Administrador -->
+    <!-- Modal Admin -->
     <div id="admin-modal" class="admin-modal">
         <div class="admin-header">
             <h3>⚙️ Panel Administrador</h3>
@@ -404,7 +417,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Enlace del Stream (.m3u8)</label>
+                    <label>Enlace del Stream (.m3u8 HTTPS)</label>
                     <input type="url" id="chan-url" placeholder="https://servidor.com/live.m3u8">
                 </div>
 
@@ -439,14 +452,13 @@
         </div>
     </div>
 
-    <!-- Script de Video.js y Lógica de Aplicación -->
     <script src="https://vjs.zencdn.net/7.20.3/video.min.js"></script>
     <script>
         const ADMIN_PASS = "admin123";
         const mainPlayer = videojs('main-player');
         let currentCategory = 'Todas';
 
-        // 📌 LISTA PERMANENTE DE CANALES (Global para PC y Celulares)
+        // LISTA DE CANALES GLOBALES CON ENLACES HTTPS COMPATIBLES CON MÓVILES
         const defaultChannels = [
             {
                 id: 1,
@@ -454,7 +466,8 @@
                 category: "Canal Propio",
                 quality: "HD",
                 url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
-                logo: "https://via.placeholder.com/40/8b5cf6/ffffff?text=MI+TV",
+                logo: "",
+                tag: "MI TV",
                 desc: "Canal exclusivo con transmisión las 24 horas."
             },
             {
@@ -463,34 +476,26 @@
                 category: "Noticias",
                 quality: "HD",
                 url: "https://cdn.jwplayer.com/manifests/pBScAFlM.m3u8",
-                logo: "https://via.placeholder.com/40/3b82f6/ffffff?text=NEWS",
+                logo: "",
+                tag: "NEWS",
                 desc: "Información y noticias internacionales."
             },
             {
                 id: 3,
-                name: "Cine & Acción 4K",
-                category: "Entretenimiento",
-                quality: "4K",
-                url: "https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8",
-                logo: "https://via.placeholder.com/40/f59e0b/000000?text=CINE",
-                desc: "Películas y series en alta definición."
-            },
-            {
-                id: 4,
                 name: "AGAPE TV HD",
                 category: "Entretenimiento",
                 quality: "HD",
-                url: "https://stream.agape.tv/hls/live.m3u8", // Reemplaza por la URL .m3u8 exacta si usas un servidor específico
-                logo: "https://via.placeholder.com/40/10b981/ffffff?text=AGAPE",
-                desc: "Transmisión en vivo de Ágape TV."
+                // NOTA DE SEGURIDAD MÓVIL: El enlace debe empezar obligatoriamente con https://
+                url: "https://d2e1asnsl7br7b.cloudfront.net/out/v1/450c26c6d0ae4e86a512702b8006a88e/index.m3u8",
+                logo: "",
+                tag: "AGAPE",
+                desc: "Señal en vivo de Ágape TV El Salvador."
             }
         ];
 
-        // Cargar canales del almacenamiento local y fusionar con la lista global
         let localSaved = JSON.parse(localStorage.getItem('iptv_channels')) || [];
-        
-        // Filtrar duplicados en caso de guardar con la misma URL
         let channels = [...defaultChannels];
+        
         localSaved.forEach(localItem => {
             if (!channels.some(ch => ch.url === localItem.url)) {
                 channels.push(localItem);
@@ -530,9 +535,15 @@
                 li.className = `channel-item ${index === 0 ? 'active' : ''}`;
                 
                 let badgeClass = ch.category === 'Canal Propio' ? 'badge-own' : 'badge-hd';
+                let tagText = ch.tag || ch.name.substring(0, 4).toUpperCase();
+
+                // Manejo del logo: si la URL de la imagen falla, muestra un cuadro con las iniciales del canal
+                let logoContent = ch.logo 
+                    ? `<img src="${ch.logo}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"><span style="display:none;">${tagText}</span>` 
+                    : `<span>${tagText}</span>`;
 
                 li.innerHTML = `
-                    <img src="${ch.logo}" alt="Logo">
+                    <div class="logo-box">${logoContent}</div>
                     <div class="channel-details">
                         <h4>${ch.name} <span class="badge-tag ${badgeClass}">${ch.quality}</span></h4>
                         <span>${ch.category}</span>
@@ -555,8 +566,21 @@
             document.getElementById('current-channel-title').textContent = channel.name;
             document.getElementById('current-channel-desc').textContent = channel.desc;
 
+            // Compatibilidad HLS para celulares (iOS / Android)
+            const rawVideo = document.getElementById('main-player_html5_api') || document.getElementById('main-player');
+            
             mainPlayer.src({ src: channel.url, type: 'application/x-mpegURL' });
-            mainPlayer.play();
+            
+            const playPromise = mainPlayer.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    // Si el navegador del celular bloquea la autorreproducción, intentar usar el motor nativo del navegador
+                    if (rawVideo && rawVideo.canPlayType('application/vnd.apple.mpegurl')) {
+                        rawVideo.src = channel.url;
+                        rawVideo.play();
+                    }
+                });
+            }
         }
 
         function filterCategory(cat) {
@@ -572,7 +596,7 @@
             const category = document.getElementById('chan-cat').value;
             const quality = document.getElementById('chan-quality').value;
             const url = document.getElementById('chan-url').value;
-            const logo = document.getElementById('chan-logo').value || 'https://via.placeholder.com/40/3b82f6/ffffff?text=TV';
+            const logo = document.getElementById('chan-logo').value;
             const desc = document.getElementById('chan-desc').value || 'Sin descripción.';
 
             if (!name || !url) {
@@ -580,7 +604,7 @@
                 return;
             }
 
-            const newChan = { id: Date.now(), name, category, quality, url, logo, desc };
+            const newChan = { id: Date.now(), name, category, quality, url, logo, desc, tag: name.substring(0, 4).toUpperCase() };
             channels.push(newChan);
             
             localSaved.push(newChan);
